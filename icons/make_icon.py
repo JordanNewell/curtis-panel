@@ -77,3 +77,10 @@ draw.rectangle(
 
 img.save("icons/icon.png", "PNG")
 print("wrote icons/icon.png", img.size)
+
+# Windows resource (.ico) — tauri-build on Windows requires icons/icon.ico
+# for generating the Windows Resource file (.rc/.res) embedded in the .exe.
+# Multi-size so the OS can pick the best fit for any DPI/taskbar/Jump List use.
+ico_sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+img.save("icons/icon.ico", format="ICO", sizes=ico_sizes)
+print("wrote icons/icon.ico", ico_sizes)
