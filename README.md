@@ -1,13 +1,41 @@
 # openpanel
 
-A desktop control panel — a software reimagining of the Work Louder × OpenAI 2026 concept hardware. Always-on-top, configurable button grid that pulses with live state from your systems. Signal-first, not action-first.
+A signal-first desktop control panel.
 
-**Status:** Design phase. See [`docs/superpowers/specs/2026-08-02-openpanel-design.md`](docs/superpowers/specs/2026-08-02-openpanel-design.md) for the v1 spec.
+A software reimagining of the Work Louder × OpenAI 2026 concept hardware. Always-on-top, configurable button grid that pulses with live state from your systems.
 
-## Quick links
+**Status:** v0.1.0-alpha — Foundation. Shell action only. Signals, full themes, and remaining features come in subsequent plans.
 
-- [Design spec](docs/superpowers/specs/2026-08-02-openpanel-design.md)
-- [Implementation plan](docs/superpowers/plans/) — coming next
+## Build
+
+```bash
+cargo build --release
+```
+
+## Configure
+
+```bash
+mkdir -p ~/.openpanel
+cp examples/config.yaml ~/.openpanel/config.yaml
+```
+
+Edit `~/.openpanel/config.yaml` to define your buttons.
+
+## Run
+
+```bash
+cargo run --release
+```
+
+Or validate config without running GUI:
+
+```bash
+cargo run -- check ~/.openpanel/config.yaml
+```
+
+## Spec
+
+See [`docs/superpowers/specs/2026-08-02-openpanel-design.md`](docs/superpowers/specs/2026-08-02-openpanel-design.md) for full v1 design.
 
 ## License
 

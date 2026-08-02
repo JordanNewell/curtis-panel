@@ -669,6 +669,8 @@ pub fn lint_raw_yaml(raw: &str) -> Vec<ValidationWarning> {
     warnings
 }
 
+> **⚠ Note:** The `has_unescaped_apostrophe_in_single_quote` snippet below has a known bug — it produces identical inner substrings for escaped vs unescaped cases. The shipped implementation (commits `13578b9`, `1d8db53`, `e15be26`) rewrote this logic. See `src/config/validator.rs` for the working version. The snippet below is preserved for plan historical accuracy.
+
 fn has_unescaped_apostrophe_in_single_quote(line: &str) -> bool {
     let trimmed = line.trim();
     if !trimmed.contains('\'') {
