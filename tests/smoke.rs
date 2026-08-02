@@ -28,5 +28,9 @@ fn example_config_first_button_runs() {
     let first_id = state.panel_snapshot().panel.buttons[0].id.clone();
     let result = state.trigger(&first_id).unwrap();
     assert!(result.success, "stderr: {}", result.stderr);
-    assert_eq!(state.panel_snapshot().states[0].state, ButtonState::Active);
+
+    let triggered = state.panel_snapshot().states.iter()
+        .find(|s| s.id == first_id)
+        .expect("triggered button should have a state entry");
+    assert_eq!(triggered.state, ButtonState::Active);
 }
