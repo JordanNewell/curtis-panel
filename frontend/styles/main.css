@@ -1,0 +1,116 @@
+:root {
+  /* NEWELL canonical tokens */
+  --bg: #0A0A0A;
+  --surface: #0F0F0F;
+  --border: #1F1F1F;
+  --text: #FFFFFF;
+  --muted: #A0A0A0;
+  --accent: #00FF41;
+  --accent-lift: #1AFF72;
+  --error: #FF4141;
+
+  /* Glow defaults — NEWELL Strict = 0 */
+  --glow-idle: 0;
+  --glow-active: 0;
+  --glow-pressed: 0;
+  --glow-error: 0;
+
+  /* Spacing — 8px grid */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Radius */
+  --radius-circle: 9999px;
+  --radius-square: 4px;
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+#panel {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: var(--sp-3);
+  background: var(--bg);
+}
+
+.button {
+  background: transparent;
+  border: 1.5px solid var(--text);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 100ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.button.shape-circle { border-radius: var(--radius-circle); }
+.button.shape-square { border-radius: var(--radius-square); }
+.button.shape-half {
+  border-radius: 100% 100% 0 0 / 100% 100% 0 0;
+  align-self: end;
+}
+.button.shape-oval { border-radius: var(--radius-circle); }
+.button.shape-crosshair::after {
+  content: '+';
+  font-size: 16px;
+  color: var(--text);
+}
+.button.shape-custom { border-radius: var(--radius-square); }
+
+.button.state-idle { border-color: var(--text); }
+.button.state-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 255, 65, 0.08);
+}
+.button.state-pressed {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+.button.state-error {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.button-label {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+}
+
+.button:hover .button-label { opacity: 1; }
