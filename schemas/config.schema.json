@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "openpanel config",
+  "type": "object",
+  "required": ["panel"],
+  "properties": {
+    "panel": {
+      "type": "object",
+      "required": ["id", "name", "grid", "buttons"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "theme": { "type": "string" },
+        "grid": {
+          "type": "object",
+          "required": ["columns", "rows"],
+          "properties": {
+            "columns": { "type": "integer", "minimum": 1 },
+            "rows": { "type": "integer", "minimum": 1 },
+            "spacing": { "type": "integer", "default": 8 }
+          }
+        },
+        "buttons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "shape", "slot", "action"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "shape": {
+                "type": "string",
+                "enum": ["circle", "square", "half", "oval", "crosshair", "custom"]
+              },
+              "label": { "type": "string" },
+              "slot": {
+                "type": "array",
+                "items": { "type": "integer" },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "span": {
+                "type": "array",
+                "items": { "type": "integer" },
+                "minItems": 2,
+                "maxItems": 2,
+                "default": [1, 1]
+              },
+              "action": {
+                "type": "object",
+                "required": ["type", "command"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["shell"] },
+                  "command": { "type": "string" },
+                  "args": { "type": "array", "items": { "type": "string" } },
+                  "timeout": { "type": "string", "default": "30s" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "webhook_port": { "type": "integer", "default": 7331 },
+        "always_on_top": { "type": "boolean", "default": false },
+        "launch_on_login": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}
