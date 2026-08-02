@@ -50,20 +50,35 @@ pub fn lint_raw_yaml(raw: &str) -> Vec<ValidationWarning> {
 }
 
 fn has_unescaped_apostrophe_in_single_quote(line: &str) -> bool {
+    // Heuristic: find a single-quoted scalar opened after `:` or `=`.
+    // In valid YAML, an apostrophe inside a single-quoted scalar must be
+    // doubled (`''`). If the closing `'` we find is followed by non-whitespace
+    // (other than a comment), the string was terminated early by an unescaped
+    // apostrophe.
     let trimmed = line.trim();
-    if !trimmed.contains('\'') {
+    let Some(q) = trimmed.find('\'') else {
+        return false;
+    };
+    if q == 0 {
         return false;
     }
-    if let Some(idx) = trimmed.find('\'') {
-        if idx > 0 {
-            let before = &trimmed[..idx];
-            if before.ends_with('=') || before.ends_with(':') {
-                let after = &trimmed[idx + 1..];
-                if let Some(end) = after.find('\'') {
-                    let inner = &after[..end];
-                    return inner.contains('\'');
-                }
+    let before = &trimmed[..q];
+    if !before.ends_with('=') && !before.ends_with(':') {
+        return false;
+    }
+    let rest = &trimmed[q + 1..];
+    let mut chars = rest.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        if c == '\'' {
+            // Doubled apostrophe = escaped, keep scanning.
+            if chars.peek().map(|(_, nc)| *nc) == Some('\'') {
+                chars.next();
+                continue;
             }
+            // Single closing quote. If trailing text is non-whitespace and not
+            // a comment, this is a premature close from an unescaped apostrophe.
+            let trailing = rest[i + 1..].trim_start();
+            return !trailing.is_empty() && !trailing.starts_with('#');
         }
     }
     false
