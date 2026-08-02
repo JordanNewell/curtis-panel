@@ -1,0 +1,46 @@
+# openpanel example config — place at ~/.openpanel/config.yaml
+panel:
+  id: minimal
+  name: "Minimal Example"
+  grid:
+    columns: 2
+    rows: 2
+
+  buttons:
+    - id: say-hello
+      shape: square
+      slot: [1, 1]
+      label: "Say Hello"
+      action:
+        type: shell
+        command: echo
+        args: ["hello, world"]
+
+    - id: list-home
+      shape: circle
+      slot: [2, 1]
+      label: "List Home"
+      action:
+        type: shell
+        command: ls
+        args: ["-la", "~"]
+
+    - id: date-now
+      shape: square
+      slot: [1, 2]
+      label: "Date"
+      action:
+        type: shell
+        command: date
+
+    - id: whoami
+      shape: circle
+      slot: [2, 2]
+      label: "Whoami"
+      action:
+        type: shell
+        command: whoami
+
+settings:
+  webhook_port: 7331
+  always_on_top: true
