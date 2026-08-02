@@ -62,6 +62,19 @@ pub struct TriggerResult {
     pub exit_code: Option<i32>,
 }
 
+#[tauri::command]
+pub fn get_panel(state: tauri::State<'_, AppState>) -> PanelSnapshot {
+    state.panel_snapshot()
+}
+
+#[tauri::command]
+pub fn trigger_action(
+    button_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<TriggerResult, String> {
+    state.trigger(&button_id).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
