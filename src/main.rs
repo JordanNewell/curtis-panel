@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod state;
 
 fn main() -> anyhow::Result<()> {
     cli::run()
