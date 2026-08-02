@@ -29,7 +29,8 @@ fn example_config_first_button_runs() {
     let result = state.trigger(&first_id).unwrap();
     assert!(result.success, "stderr: {}", result.stderr);
 
-    let triggered = state.panel_snapshot().states.iter()
+    let snapshot = state.panel_snapshot();
+    let triggered = snapshot.states.iter()
         .find(|s| s.id == first_id)
         .expect("triggered button should have a state entry");
     assert_eq!(triggered.state, ButtonState::Active);
