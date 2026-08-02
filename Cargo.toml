@@ -23,3 +23,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 [dev-dependencies]
 assert_fs = "1"
 pretty_assertions = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
