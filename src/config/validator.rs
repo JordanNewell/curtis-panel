@@ -62,7 +62,7 @@ fn has_unescaped_apostrophe_in_single_quote(line: &str) -> bool {
     if q == 0 {
         return false;
     }
-    let before = &trimmed[..q];
+    let before = trimmed[..q].trim_end();
     if !before.ends_with('=') && !before.ends_with(':') {
         return false;
     }
