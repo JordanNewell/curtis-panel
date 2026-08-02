@@ -65,7 +65,7 @@ fn default_spacing() -> u32 {
     8
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Settings {
     #[serde(default = "default_webhook_port")]
     pub webhook_port: u16,
@@ -73,6 +73,16 @@ pub struct Settings {
     pub always_on_top: bool,
     #[serde(default)]
     pub launch_on_login: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            webhook_port: default_webhook_port(),
+            always_on_top: false,
+            launch_on_login: false,
+        }
+    }
 }
 
 fn default_webhook_port() -> u16 {
