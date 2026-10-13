@@ -3,7 +3,7 @@ name = "openpanel"
 version = "0.1.0-alpha"
 edition = "2021"
 description = "Signal-first desktop control panel"
-license = "MIT"
+license = "BUSL-1.1"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

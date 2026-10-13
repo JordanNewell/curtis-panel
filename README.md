@@ -39,4 +39,4 @@ See [`docs/superpowers/specs/2026-08-02-openpanel-design.md`](docs/superpowers/s
 
 ## License
 
-MIT
+BUSL-1.1 — see [LICENSE](LICENSE). Source-available; converts to MIT on 2030-10-12. Copyright (c) 2026 Jordan Newell.
