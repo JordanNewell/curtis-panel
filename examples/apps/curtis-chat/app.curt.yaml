@@ -2,8 +2,8 @@
 # Loads the hosted Curtis web UI; login happens once in the panel and the
 # webview session persists (the panel performs no auth of its own).
 #
-# Locally-installed apps use `entry:` instead of `url:` (a local executable
-# path); the two are mutually exclusive. `size` defaults to `folio` when omitted.
+# Locally-installed apps use `entry:` instead of `url:` (a local file path
+# (e.g. index.html)); the two are mutually exclusive. `size` defaults to `folio` when omitted.
 name: "Curtis Chat"
 url: "https://app.curtisai.tech"
 size: full
