@@ -117,7 +117,7 @@ impl Default for Dock {
             edge: DockEdge::Right,
             hotkey: "alt+c".to_string(),
             peek: true,
-            size: DockSize::Folio,
+            size: DockSize::Ledger,
             motion: DockMotion::Drawer,
         }
     }
@@ -230,7 +230,7 @@ panel:
         assert_eq!(config.dock.edge, DockEdge::Right);
         assert_eq!(config.dock.hotkey, "alt+c");
         assert!(config.dock.peek);
-        assert_eq!(config.dock.size, DockSize::Folio);
+        assert_eq!(config.dock.size, DockSize::Ledger);
         assert_eq!(config.dock.motion, DockMotion::Drawer);
         assert_eq!(config.apps_dir, None);
     }

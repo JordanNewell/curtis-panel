@@ -58,7 +58,7 @@ fn example_apps_dir_loads_cleanly() {
 fn example_config_dock_section_is_valid() {
     let config = load_from_path(&examples_config()).unwrap();
     assert_eq!(config.dock.edge, openpanel::config::DockEdge::Right);
-    assert_eq!(config.dock.size, openpanel::config::DockSize::Folio);
+    assert_eq!(config.dock.size, openpanel::config::DockSize::Ledger);
     assert_eq!(config.dock.motion, openpanel::config::DockMotion::Drawer);
     let warnings = validate(&config);
     assert!(warnings.is_empty(), "dock validation warnings: {:?}", warnings);
