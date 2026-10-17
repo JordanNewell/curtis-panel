@@ -2,7 +2,6 @@ function renderPanel(panel, states) {
   const container = document.getElementById('panel');
   container.innerHTML = '';
   container.style.gridTemplateColumns = `repeat(${panel.grid.columns}, 1fr)`;
-  container.style.gridTemplateRows = `repeat(${panel.grid.rows}, 1fr)`;
   container.style.gap = `${panel.grid.spacing}px`;
 
   const stateById = new Map(states.map(s => [s.id, s]));
