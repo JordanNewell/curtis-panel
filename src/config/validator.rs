@@ -8,6 +8,88 @@ pub struct ValidationWarning {
     pub message: String,
 }
 
+const HOTKEY_MODIFIERS: &[&str] = &["ctrl", "alt", "shift", "super", "cmd"];
+
+const RESERVED_HOTKEYS: &[&str] = &[
+    "alt+tab",
+    "ctrl+alt+del",
+    "ctrl+escape",
+    "alt+f4",
+    "super",
+    "cmd",
+];
+
+pub fn validate_hotkey(hotkey: &str) -> Vec<ValidationWarning> {
+    let mut warnings = Vec::new();
+    let hotkey = hotkey.trim().to_lowercase();
+
+    if RESERVED_HOTKEYS.contains(&hotkey.as_str()) {
+        warnings.push(ValidationWarning {
+            line: 0,
+            message: format!("hotkey '{hotkey}' is reserved by the OS — pick another"),
+        });
+        return warnings;
+    }
+
+    let parts: Vec<&str> = hotkey.split('+').filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() {
+        warnings.push(ValidationWarning {
+            line: 0,
+            message: "hotkey is empty".to_string(),
+        });
+        return warnings;
+    }
+
+    let (key, modifiers) = parts.split_last().unwrap();
+    let key = *key;
+    let key_ok = key.len() == 1
+        || (key.starts_with('f')
+            && key[1..].parse::<u8>().is_ok()
+            && (1..=24).contains(&key[1..].parse::<u8>().unwrap()));
+    if !key_ok {
+        warnings.push(ValidationWarning {
+            line: 0,
+            message: format!("hotkey key '{key}' must be a single character or F1-F24"),
+        });
+    }
+
+    let mut seen: Vec<&str> = Vec::new();
+    let mut last_idx: Option<usize> = None;
+    for m in modifiers {
+        match HOTKEY_MODIFIERS.iter().position(|c| c == m) {
+            None => {
+                warnings.push(ValidationWarning {
+                    line: 0,
+                    message: format!(
+                        "unknown hotkey modifier '{m}' (expected one of: {})",
+                        HOTKEY_MODIFIERS.join(", ")
+                    ),
+                });
+            }
+            Some(idx) => {
+                if seen.contains(m) {
+                    warnings.push(ValidationWarning {
+                        line: 0,
+                        message: format!("duplicate hotkey modifier '{m}'"),
+                    });
+                }
+                if last_idx.is_some_and(|li| idx < li) {
+                    warnings.push(ValidationWarning {
+                        line: 0,
+                        message: format!(
+                            "hotkey modifiers must be in canonical order (ctrl, alt, shift, super, cmd) — got '{hotkey}'"
+                        ),
+                    });
+                }
+                last_idx = Some(idx);
+            }
+        }
+        seen.push(m);
+    }
+
+    warnings
+}
+
 pub fn validate(config: &Config) -> Vec<ValidationWarning> {
     let mut warnings = Vec::new();
 
@@ -30,6 +112,17 @@ pub fn validate(config: &Config) -> Vec<ValidationWarning> {
                 ),
             });
         }
+    }
+
+    if config.dock.mode != crate::config::DockMode::Pin {
+        warnings.extend(
+            validate_hotkey(&config.dock.hotkey)
+                .into_iter()
+                .map(|mut w| {
+                    w.message = format!("hotkey: {}", w.message);
+                    w
+                }),
+        );
     }
 
     warnings
@@ -137,5 +230,65 @@ panel:
 "#).unwrap();
         let warnings = validate(&config);
         assert!(warnings.iter().any(|w| w.message.contains("exceeds grid columns")));
+    }
+
+    #[test]
+    fn accepts_well_formed_hotkeys() {
+        assert!(validate_hotkey("alt+c").is_empty());
+        assert!(validate_hotkey("ctrl+shift+p").is_empty());
+        assert!(validate_hotkey("f9").is_empty());
+        assert!(validate_hotkey("cmd+k").is_empty());
+    }
+
+    #[test]
+    fn rejects_malformed_hotkeys() {
+        assert!(!validate_hotkey("").is_empty());
+        assert!(!validate_hotkey("alt+").is_empty());
+        assert!(!validate_hotkey("alt+ctrl+c").is_empty()); // key must be last
+        assert!(!validate_hotkey("ctrl+ctrl+k").is_empty()); // duplicate modifier
+        assert!(!validate_hotkey("meta+x").is_empty()); // unknown modifier
+        assert!(!validate_hotkey("alt+space+q").is_empty()); // two keys
+    }
+
+    #[test]
+    fn warns_on_reserved_hotkeys() {
+        let warnings = validate_hotkey("alt+tab");
+        assert!(warnings.iter().any(|w| w.message.contains("reserved")));
+        let warnings = validate_hotkey("ctrl+alt+del");
+        assert!(warnings.iter().any(|w| w.message.contains("reserved")));
+    }
+
+    #[test]
+    fn validate_includes_hotkey_warnings_in_dock_and_float_modes() {
+        for mode in ["dock", "float"] {
+            let config: Config = serde_yaml::from_str(&format!(r#"
+panel:
+  id: test
+  name: Test
+  grid: {{ columns: 4, rows: 5 }}
+  buttons: []
+dock:
+  mode: {mode}
+  hotkey: alt+tab
+"#)).unwrap();
+            let warnings = validate(&config);
+            assert!(warnings.iter().any(|w| w.message.contains("reserved")), "mode={mode}");
+        }
+    }
+
+    #[test]
+    fn validate_skips_hotkey_check_in_pin_mode() {
+        let config: Config = serde_yaml::from_str(r#"
+panel:
+  id: test
+  name: Test
+  grid: { columns: 4, rows: 5 }
+  buttons: []
+dock:
+  mode: pin
+  hotkey: "not a hotkey at all"
+"#).unwrap();
+        let warnings = validate(&config);
+        assert!(warnings.iter().all(|w| !w.message.contains("hotkey")));
     }
 }
