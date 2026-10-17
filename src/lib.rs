@@ -9,6 +9,16 @@ pub mod shell;
 pub mod state;
 
 pub fn run_app() -> anyhow::Result<()> {
+    // Observability: spec §7 relies on tracing::warn! for invalid manifests
+    // and persist failures — without a subscriber they vanish. Default to
+    // INFO when RUST_LOG is unset (fmt::init() alone would drop warnings).
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
+        .init();
     use crate::config::DockMode;
     use tauri::{
         menu::{Menu, MenuItem},
