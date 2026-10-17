@@ -4,8 +4,15 @@ use crate::geometry::{dock_rect, Rect};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, Window, WebviewWindow};
 
+/// Peek tab dimensions — mirror tauri.conf.json's peek window (6x120).
 const PEEK_LEN: i32 = 120;
 const PEEK_THICK: i32 = 6;
+
+/// Must match the frontend slide-out animation duration (Task 9 CSS).
+const HIDE_DELAY_MS: u64 = 240;
+
+/// A human's first real click always lands later than this.
+const PEEK_ARM_DELAY_MS: u64 = 750;
 
 /// Suppresses the focus toggle fired by peek's own programmatic `show()` at
 /// startup; a human's first real click always lands later than this.
@@ -78,8 +85,9 @@ pub fn position_dock(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Park the panel fully off-monitor on its dock edge (hidden state), or back
-/// to its docked rectangle (shown state). The CSS slide animation runs in the
+/// Show the panel at its docked rectangle, or hide it after the CSS
+/// slide-out. The hidden window is repositioned to the dock rect so the next
+/// show is already correctly placed. The CSS slide animation runs in the
 /// webview; window-level moves are instant.
 pub fn set_dock_shown(app: &AppHandle, shown: bool) -> tauri::Result<()> {
     let Some(window) = app.get_webview_window("main") else {
@@ -98,12 +106,20 @@ pub fn set_dock_shown(app: &AppHandle, shown: bool) -> tauri::Result<()> {
         window.show()?;
         let _ = window.set_focus();
     } else {
-        // Wait for the CSS slide-out, then hide + park offscreen.
+        // Wait for the CSS slide-out, then hide + re-place at the dock rect.
         let handle = app.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(240));
-            let _ = handle.get_webview_window("main").map(|w| w.hide());
-            let _ = position_dock(&handle);
+            std::thread::sleep(std::time::Duration::from_millis(HIDE_DELAY_MS));
+            // Re-check: a show inside the delay window must not be undone.
+            let still_hidden = !handle
+                .state::<crate::commands::AppState>()
+                .dock
+                .read()
+                .shown;
+            if still_hidden {
+                let _ = handle.get_webview_window("main").map(|w| w.hide());
+                let _ = position_dock(&handle);
+            }
         });
     }
     Ok(())
@@ -140,8 +156,8 @@ pub fn note_resize(window: &Window) {
         if cfg.dock.mode != DockMode::Dock {
             return;
         }
-        // Programmatic resizes (startup positioning, park-offscreen) also fire
-        // Resized; only a visible window can be drag-resized by a human.
+        // Programmatic resizes (startup positioning, hidden re-placement) also
+        // fire Resized; only a visible window can be drag-resized by a human.
         if !state.dock.read().shown {
             return;
         }
@@ -209,7 +225,7 @@ pub fn position_peek(app: &AppHandle) -> tauri::Result<()> {
         }
     });
     std::thread::spawn(|| {
-        std::thread::sleep(std::time::Duration::from_millis(750));
+        std::thread::sleep(std::time::Duration::from_millis(PEEK_ARM_DELAY_MS));
         PEEK_ARMED.store(true, Ordering::Relaxed);
     });
     Ok(())
