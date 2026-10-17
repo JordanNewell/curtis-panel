@@ -23,7 +23,12 @@ pub fn run_app() -> anyhow::Result<()> {
 
     tauri::Builder::default()
         .manage(AppState::new(config))
-        .invoke_handler(tauri::generate_handler![commands::get_panel, commands::trigger_action])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_panel,
+            commands::trigger_action,
+            commands::get_dock,
+            commands::set_dock_size
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
     Ok(())
