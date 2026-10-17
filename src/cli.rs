@@ -81,7 +81,6 @@ fn pid_file_path() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use assert_fs::prelude::*;
 
     #[test]
