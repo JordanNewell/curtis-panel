@@ -37,6 +37,7 @@
   --radius-m: 8px;
   --measure: 66ch;
   --grid: 8px;
+  --rule-pitch: calc(var(--grid) * 4);   /* ledger ruling: one line every 4 grid units */
 
   /* ---- semantic tokens (remapped by theme) ---- */
   --canvas: var(--paper);

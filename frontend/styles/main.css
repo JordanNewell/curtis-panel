@@ -71,12 +71,34 @@ html, body {
 .view { display: none; flex: 1; min-width: 0; }
 .view.active { display: flex; }
 
-/* deck view */
-#view-deck { padding: var(--grid); }
+/* deck view — a ruled ledger sheet: entries sit on accounting paper,
+   the caption closes the page so leftover height reads as margin */
+#view-deck {
+  padding: calc(var(--grid) * 2);
+  flex-direction: column;
+  gap: var(--grid);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--rule-pitch) - 1px),
+    var(--edge) calc(var(--rule-pitch) - 1px),
+    var(--edge) var(--rule-pitch)
+  );
+}
 #panel {
   display: grid;
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+#deck-caption {
+  font-family: var(--font-records);
+  font-size: 12px;
+  color: var(--fg-muted);
+  text-align: right;   /* margin annotation, not a centered footer */
+}
+@media (max-width: 320px) {
+  #deck-caption { display: none; }  /* clutter below ledger width */
 }
 
 /* apps view */
@@ -152,40 +174,37 @@ html, body {
 }
 
 /* button grid entries keep the existing button.js classes — restyle in place
-   (button.js emits .button with .shape-*/.state-* classes, not .btn/data-state) */
+   (button.js emits .button with shape- and state- modifier classes).
+   Entries sit on the ruled sheet: surface fill occludes the ruling behind them,
+   labels read as record type in the row, state colors inherit into the text. */
 #panel .button {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: calc(var(--grid) / 2);
+  padding: var(--grid);
   position: relative;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--edge);
-  color: var(--fg);
+  color: var(--fg-muted);
   font-family: var(--font-records);
   cursor: pointer;
   border-radius: var(--radius-s);
 }
-#panel .button:hover { border-color: var(--accent); }
+#panel .button:hover { border-color: var(--accent); color: var(--fg); }
 #panel .button.shape-circle, #panel .button.shape-oval { border-radius: 9999px; }
 #panel .button.shape-half { border-radius: 9999px 9999px 0 0; align-self: end; }
 #panel .button.state-active { border-color: var(--accent); color: var(--accent); }
 #panel .button.state-error { border-color: var(--stamp-red); color: var(--stamp-red); }
 #panel .button.state-pressed { background: var(--row-alt); }
 #panel .button-label {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--font-records);
-  font-size: 10px;
-  color: var(--fg-muted);
+  font-size: 12px;
   white-space: nowrap;
-  opacity: 0;
-  transition: opacity 150ms ease;
   pointer-events: none;
 }
-#panel .button:hover .button-label { opacity: 1; }
+#panel .button-value { font-size: 12px; }
 
 /* focus rings */
 button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
