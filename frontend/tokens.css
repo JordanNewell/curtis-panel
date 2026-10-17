@@ -1,0 +1,66 @@
+/*
+ * curtis-panel — Records Office tokens.
+ * Copied verbatim from curtis-console tokens.css (frozen B0 set,
+ * extracted from curtis-ai-tech tokens.json v1.0.0).
+ * Paper is the first-class surface; ink (dark) is the secondary.
+ */
+
+:root {
+  /* paper (first-class surface) */
+  --paper: #F5F5F3;
+  --paper-surface: #FFFFFF;
+  --ruling: #DDE0D8;
+  --text: #1A1A18;
+  --muted: #6B6B66;
+  --green-bar: #F0F2EC;
+
+  /* green family */
+  --green-700: #0E7A45;
+  --green-900: #0A4A2C;
+  --green-500: #23A45F;
+
+  /* ink (second surface — dark theme) */
+  --ink: #0A0A0A;
+  --ink-surface: #0F0F0F;
+  --ink-border: #1F1F1F;
+
+  /* the one non-green accent — stamps only */
+  --stamp-red: #BE3A2B;
+
+  /* type */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-records: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* structure */
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --measure: 66ch;
+  --grid: 8px;
+
+  /* ---- semantic tokens (remapped by theme) ---- */
+  --canvas: var(--paper);
+  --surface: var(--paper-surface);
+  --edge: var(--ruling);
+  --fg: var(--text);
+  --fg-muted: var(--muted);
+  --row-alt: var(--green-bar);
+  --accent: var(--green-700);
+  --accent-deep: var(--green-900);      /* hover: darker on paper */
+  --accent-ink: var(--paper);           /* text on accent fills */
+  --focus-ring: var(--green-700);
+}
+
+/* ---- ink theme (dark) ---- */
+.theme-ink {
+  --canvas: var(--ink);
+  --surface: var(--ink-surface);
+  --edge: var(--ink-border);
+  --fg: #FFFFFF;
+  --fg-muted: #A0A0A0;
+  --row-alt: #141412;
+  --accent: var(--green-500);           /* green-500 reads on ink */
+  --accent-deep: #2FBF74;               /* hover: lighter on ink */
+  --accent-ink: var(--ink);
+  --focus-ring: var(--green-500);
+}

@@ -3,12 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <title>openpanel</title>
+  <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="styles/main.css">
 </head>
-<body>
-  <div id="panel"></div>
+<body class="theme-paper">
+  <div id="dock" class="edge-right motion-drawer">
+    <header id="dock-head">
+      <span id="dock-mark">◉ curtis panel</span>
+      <nav id="dock-tabs">
+        <button class="tab active" data-view="deck">deck</button>
+        <button class="tab" data-view="apps">apps</button>
+      </nav>
+      <button id="theme-toggle" title="toggle ink">ink</button>
+    </header>
+    <main id="dock-body">
+      <section id="view-deck" class="view active">
+        <div id="panel"></div>
+      </section>
+      <section id="view-apps" class="view">
+        <aside id="app-list"></aside>
+        <div id="app-region">
+          <iframe id="app-frame" hidden></iframe>
+          <div id="app-unavailable" hidden>
+            <p class="stamp">RECORD UNAVAILABLE</p>
+            <p id="app-unavailable-name"></p>
+            <button id="app-retry">retry</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
   <script src="components/button.js"></script>
   <script src="components/panel.js"></script>
+  <script src="apps.js"></script>
+  <script src="dock.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

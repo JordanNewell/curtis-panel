@@ -1,116 +1,187 @@
-:root {
-  /* NEWELL canonical tokens */
-  --bg: #0A0A0A;
-  --surface: #0F0F0F;
-  --border: #1F1F1F;
-  --text: #FFFFFF;
-  --muted: #A0A0A0;
-  --accent: #00FF41;
-  --accent-lift: #1AFF72;
-  --error: #FF4141;
+/* curtis-panel — Records Office dock chrome.
+   Tokens come from tokens.css (frozen B0). No hex outside tokens.css. */
+@import url('../tokens.css');
 
-  /* Glow defaults — NEWELL Strict = 0 */
-  --glow-idle: 0;
-  --glow-active: 0;
-  --glow-pressed: 0;
-  --glow-error: 0;
-
-  /* Spacing — 8px grid */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 24px;
-  --sp-6: 32px;
-
-  /* Radius */
-  --radius-circle: 9999px;
-  --radius-square: 4px;
-
-  /* Typography */
-  --font-mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', Consolas, monospace;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; }
 
 html, body {
-  width: 100%;
+  margin: 0;
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  user-select: none;
-  -webkit-user-select: none;
+  background: transparent;
+  font-family: var(--font-body);
+  color: var(--fg);
   overflow: hidden;
+  user-select: none;
 }
 
+/* The dock fills the window; the window is the docked rectangle. */
+#dock {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  border: 1px solid var(--edge);
+  /* hidden state: translate off the docked edge; .open slides in */
+  transition: transform 220ms var(--motion-curve, cubic-bezier(.2, .9, .25, 1.15));
+}
+#dock.motion-slide { --motion-curve: ease; transition-timing-function: ease; }
+#dock.motion-stamp { --motion-curve: cubic-bezier(.1, 1.4, .3, 1); }
+
+#dock.edge-right:not(.open) { transform: translateX(100%); }
+#dock.edge-left:not(.open) { transform: translateX(-100%); }
+#dock.edge-top:not(.open) { transform: translateY(-100%); }
+#dock.edge-bottom:not(.open) { transform: translateY(100%); }
+
+/* header */
+#dock-head {
+  display: flex;
+  align-items: center;
+  gap: var(--grid);
+  padding: var(--grid) calc(var(--grid) * 2);
+  border-bottom: 1px solid var(--edge);
+  font-family: var(--font-records);
+  font-size: 12px;
+}
+#dock-mark { color: var(--accent); letter-spacing: .06em; }
+#dock-tabs { display: flex; gap: calc(var(--grid) / 2); margin-left: auto; }
+.tab {
+  font-family: var(--font-records);
+  font-size: 12px;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-s);
+}
+.tab.active { color: var(--fg); border-color: var(--edge); background: var(--surface); }
+#theme-toggle {
+  font-family: var(--font-records);
+  font-size: 12px;
+  background: none;
+  border: 1px solid var(--edge);
+  color: var(--fg-muted);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+  padding: 2px 8px;
+}
+
+/* body layout */
+#dock-body { flex: 1; min-height: 0; display: flex; }
+.view { display: none; flex: 1; min-width: 0; }
+.view.active { display: flex; }
+
+/* deck view */
+#view-deck { padding: var(--grid); }
 #panel {
   display: grid;
   width: 100%;
   height: 100%;
-  padding: var(--sp-3);
-  background: var(--bg);
 }
 
-.button {
-  background: transparent;
-  border: 1.5px solid var(--text);
-  color: var(--text);
+/* apps view */
+#view-apps { flex-direction: row; }
+.edge-top #view-apps, .edge-bottom #view-apps { flex-direction: column; }
+#app-list {
+  width: 200px;
+  border-right: 1px solid var(--edge);
+  padding: var(--grid);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--grid) / 2);
+  font-family: var(--font-records);
+  font-size: 12px;
+}
+.edge-top #app-list, .edge-bottom #app-list {
+  width: auto;
+  border-right: none;
+  border-bottom: 1px solid var(--edge);
+  flex-direction: row;
+  align-items: center;
+}
+.app-entry {
+  font-family: var(--font-records);
+  font-size: 12px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  color: var(--fg);
+  padding: 6px 10px;
   cursor: pointer;
+  border-radius: var(--radius-s);
+}
+.app-entry:hover { border-color: var(--accent); color: var(--accent); }
+.app-empty { color: var(--fg-muted); max-width: 24ch; }
+.app-soon { color: var(--fg-muted); font-style: italic; margin-top: auto; }
+
+#app-region { flex: 1; min-width: 0; position: relative; background: var(--surface); }
+#app-frame { width: 100%; height: 100%; border: 0; }
+
+/* unavailable state — the one stamp-red moment */
+#app-unavailable {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--grid);
+  background: var(--canvas);
+}
+#app-unavailable .stamp {
+  font-family: var(--font-records);
+  color: var(--stamp-red);
+  border: 2px solid var(--stamp-red);
+  padding: 4px 12px;
+  transform: rotate(-4deg);
+  border-radius: var(--radius-s);
+}
+#app-unavailable-name { color: var(--fg-muted); font-family: var(--font-records); font-size: 12px; }
+#app-retry {
+  font-family: var(--font-records);
+  background: none;
+  border: 1px solid var(--edge);
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+  padding: 4px 12px;
+}
+
+/* button grid entries keep the existing button.js classes — restyle in place
+   (button.js emits .button with .shape-*/.state-* classes, not .btn/data-state) */
+#panel .button {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 100ms ease;
   position: relative;
   overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  color: var(--fg);
+  font-family: var(--font-records);
+  cursor: pointer;
+  border-radius: var(--radius-s);
 }
-
-.button.shape-circle { border-radius: var(--radius-circle); }
-.button.shape-square { border-radius: var(--radius-square); }
-.button.shape-half {
-  border-radius: 100% 100% 0 0 / 100% 100% 0 0;
-  align-self: end;
-}
-.button.shape-oval { border-radius: var(--radius-circle); }
-.button.shape-crosshair::after {
-  content: '+';
-  font-size: 16px;
-  color: var(--text);
-}
-.button.shape-custom { border-radius: var(--radius-square); }
-
-.button.state-idle { border-color: var(--text); }
-.button.state-active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(0, 255, 65, 0.08);
-}
-.button.state-pressed {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--bg);
-}
-.button.state-error {
-  border-color: var(--error);
-  color: var(--error);
-}
-
-.button-label {
+#panel .button:hover { border-color: var(--accent); }
+#panel .button.shape-circle, #panel .button.shape-oval { border-radius: 9999px; }
+#panel .button.shape-half { border-radius: 9999px 9999px 0 0; align-self: end; }
+#panel .button.state-active { border-color: var(--accent); color: var(--accent); }
+#panel .button.state-error { border-color: var(--stamp-red); color: var(--stamp-red); }
+#panel .button.state-pressed { background: var(--row-alt); }
+#panel .button-label {
   position: absolute;
-  bottom: -22px;
+  bottom: -20px;
   left: 50%;
   transform: translateX(-50%);
+  font-family: var(--font-records);
   font-size: 10px;
-  color: var(--muted);
+  color: var(--fg-muted);
   white-space: nowrap;
   opacity: 0;
   transition: opacity 150ms ease;
   pointer-events: none;
 }
+#panel .button:hover .button-label { opacity: 1; }
 
-.button:hover .button-label { opacity: 1; }
+/* focus rings */
+button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
