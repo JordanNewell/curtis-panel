@@ -1,7 +1,9 @@
 use crate::config::{DockEdge, DockSize};
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
+use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PersistedSize {
@@ -18,6 +20,7 @@ pub enum SizeChoice {
 /// Runtime dock state: what the shell needs to position and show/hide the
 /// window. Persisted to `dock-state.json` so edge + drag sizes survive restarts.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct DockState {
     pub edge: DockEdge,
     pub shown: bool,
@@ -26,6 +29,18 @@ pub struct DockState {
     /// Last window position in `mode: float` (physical px), so a popped-out
     /// panel reopens where the consumer left it.
     pub float_pos: Option<(i32, i32)>,
+}
+
+impl Default for DockState {
+    fn default() -> Self {
+        Self {
+            edge: DockEdge::Right,
+            shown: false,
+            size: DockSize::Folio,
+            custom_by_edge: HashMap::new(),
+            float_pos: None,
+        }
+    }
 }
 
 impl DockState {
@@ -71,21 +86,32 @@ impl DockState {
         }
     }
 
+    /// Writes atomically: a crash mid-write can never leave a truncated
+    /// `dock-state.json` behind.
     pub fn save(&self, path: &Path) -> anyhow::Result<()> {
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
         }
+        let tmp: PathBuf = path.with_file_name(format!(
+            "{}.tmp",
+            path.file_name().unwrap_or_default().to_string_lossy()
+        ));
         let raw = serde_json::to_string_pretty(self)?;
-        std::fs::write(path, raw)?;
+        std::fs::write(&tmp, raw).context("failed to write dock state")?;
+        std::fs::rename(&tmp, path).context("failed to write dock state")?;
         Ok(())
     }
 
-    /// `Ok(None)` when no state file exists yet (first run).
+    /// `Ok(None)` when no state file exists yet (first run). Corrupt state is
+    /// treated as absent; defaults apply. Any other io error propagates.
     pub fn load(path: &Path) -> anyhow::Result<Option<Self>> {
-        let Ok(raw) = std::fs::read_to_string(path) else {
-            return Ok(None);
+        let raw = match std::fs::read_to_string(path) {
+            Ok(raw) => raw,
+            Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
+            Err(err) => return Err(err).context("failed to read dock state"),
         };
-        Ok(Some(serde_json::from_str(&raw)?))
+        Ok(serde_json::from_str(&raw).ok())
     }
 }
 
@@ -164,5 +190,34 @@ mod tests {
         s.save(&path).unwrap();
         let loaded = DockState::load(&path).unwrap().unwrap();
         assert_eq!(loaded.float_pos, Some((120, 240)));
+    }
+
+    #[test]
+    fn corrupt_state_is_treated_as_absent() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let path = temp.path().join("dock-state.json");
+        std::fs::write(&path, "{not json").unwrap();
+        let loaded = DockState::load(&path).unwrap();
+        assert!(loaded.is_none());
+    }
+
+    #[test]
+    fn save_creates_missing_parent_dirs() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let path = temp.path().join("deep/nested/dir/dock-state.json");
+        new_state().save(&path).unwrap();
+        assert!(DockState::load(&path).unwrap().is_some());
+    }
+
+    #[test]
+    fn set_size_on_new_edge_keeps_other_edges_overrides() {
+        let mut s = new_state();
+        s.set_custom(500, 800); // override on Right
+        s.set_edge(DockEdge::Top);
+        s.set_custom(300, 400); // override on Top
+        s.set_size(DockSize::Ledger); // clears Top's override only
+        assert!(matches!(s.effective_size(), SizeChoice::Preset(DockSize::Ledger)));
+        s.set_edge(DockEdge::Right);
+        assert!(matches!(s.effective_size(), SizeChoice::Custom(PersistedSize { width: 500, height: 800 })));
     }
 }
