@@ -46,9 +46,8 @@ my-app/
   app.curt.yaml   # name, url or entry, optional icon, size hint
 ```
 
-Restart (or `curtis-panel reload`) and the app appears in the panel's apps
-view. A server-side app directory is planned for v2 — the manifest format is
-the contract.
+Restart the panel and the app appears in the apps view. A server-side app
+directory is planned for v2 — the manifest format is the contract.
 
 ## Run
 
