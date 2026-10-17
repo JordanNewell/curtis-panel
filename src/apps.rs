@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -22,6 +23,9 @@ pub struct AppManifest {
     pub entry: Option<String>,
     #[serde(default)]
     pub size: AppSizeHint,
+    /// Local panel-focused hotkey (validated/registered in a later task).
+    #[serde(default)]
+    pub hotkey: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -57,13 +61,18 @@ pub fn load_apps(apps_dir: &Path) -> (Vec<LoadedApp>, Vec<AppLoadError>) {
                 Ok(m) => loaded.push(LoadedApp { dir: path, manifest: m }),
                 Err(e) => errors.push(AppLoadError { dir: path, message: e }),
             },
-            Err(_) => errors.push(AppLoadError {
+            Err(e) if e.kind() == ErrorKind::NotFound => errors.push(AppLoadError {
                 dir: path,
                 message: format!("missing {MANIFEST_FILE}"),
+            }),
+            Err(e) => errors.push(AppLoadError {
+                dir: path,
+                message: format!("cannot read {MANIFEST_FILE}: {e}"),
             }),
         }
     }
     loaded.sort_by(|a, b| a.manifest.name.cmp(&b.manifest.name));
+    errors.sort_by(|a, b| a.dir.cmp(&b.dir));
     (loaded, errors)
 }
 
@@ -141,6 +150,23 @@ mod tests {
         assert!(loaded.is_empty());
         assert_eq!(errors.len(), 1);
         assert!(errors[0].message.contains("exactly one of url or entry"));
+    }
+
+    #[test]
+    fn rejects_manifest_with_neither_url_nor_entry() {
+        let (loaded, errors) = load_one("name: X\n");
+        assert!(loaded.is_empty());
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].message.contains("exactly one of url or entry"));
+    }
+
+    #[test]
+    fn rejects_manifest_with_unknown_fields() {
+        let raw = "name: X\nurl: https://x.test\nbogus: true\n";
+        let (loaded, errors) = load_one(raw);
+        assert!(loaded.is_empty());
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].message.contains("invalid app.curt.yaml"));
     }
 
     fn load_one(raw: &str) -> (Vec<LoadedApp>, Vec<AppLoadError>) {
