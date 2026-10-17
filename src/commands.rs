@@ -10,9 +10,9 @@ use crate::state::{ButtonState, StateStore};
 pub struct AppState {
     pub config: Arc<RwLock<Config>>,
     pub state: StateStore,
-    pub dock: parking_lot::RwLock<DockState>,
-    pub apps: parking_lot::RwLock<Vec<crate::apps::LoadedApp>>,
-    pub app_errors: parking_lot::RwLock<Vec<crate::apps::AppLoadError>>,
+    pub dock: RwLock<DockState>,
+    pub apps: RwLock<Vec<crate::apps::LoadedApp>>,
+    pub app_errors: RwLock<Vec<crate::apps::AppLoadError>>,
 }
 
 impl AppState {
@@ -25,9 +25,9 @@ impl AppState {
         Self {
             config: Arc::new(RwLock::new(config)),
             state,
-            dock: parking_lot::RwLock::new(dock),
-            apps: parking_lot::RwLock::new(Vec::new()),
-            app_errors: parking_lot::RwLock::new(Vec::new()),
+            dock: RwLock::new(dock),
+            apps: RwLock::new(Vec::new()),
+            app_errors: RwLock::new(Vec::new()),
         }
     }
 
@@ -53,13 +53,12 @@ impl AppState {
         let dock = self.dock.read();
         let cfg = self.config.read();
         DockSnapshot {
+            mode: cfg.dock.mode,
             edge: dock.edge,
+            hotkey: cfg.dock.hotkey.clone(),
             shown: dock.shown,
             size: dock.size,
-            custom: match dock.effective_size() {
-                SizeChoice::Preset(_) => None,
-                SizeChoice::Custom(c) => Some(c),
-            },
+            effective: dock.effective_size(),
             motion: cfg.dock.motion,
             peek: cfg.dock.peek,
             apps: self
@@ -75,6 +74,12 @@ impl AppState {
                     }),
                     size: a.manifest.size,
                 })
+                .collect(),
+            errors: self
+                .app_errors
+                .read()
+                .iter()
+                .map(|e| format!("{}: {}", e.dir.display(), e.message))
                 .collect(),
         }
     }
@@ -132,15 +137,30 @@ pub struct AppInfo {
     pub size: AppSizeHint,
 }
 
+/// Full dock state for the frontend (`get_dock` IPC contract).
+///
+/// - `mode`/`hotkey`/`peek`/`motion` mirror the static config; `hotkey` is
+///   the toggle binding to hint in the UI (e.g. `"alt+c"`).
+/// - `edge`/`shown`/`size` are runtime dock state; `size` is the active
+///   *named preset* and may lag behind the user's drag.
+/// - `effective` is the authoritative window size (`{"preset":"folio"}` or
+///   `{"custom":{"width":500,"height":800}}`) — always render from this,
+///   never from `size` alone.
+/// - `entry` in each app is the manifest path resolved against the app dir.
+/// - `errors` lists app dirs skipped at load (`"<dir>: <reason>"`), never
+///   fatal — surface as a badge, not a blocker.
 #[derive(Debug, serde::Serialize, Clone)]
 pub struct DockSnapshot {
+    pub mode: crate::config::DockMode,
     pub edge: crate::config::DockEdge,
+    pub hotkey: String,
     pub shown: bool,
     pub size: DockSize,
-    pub custom: Option<crate::dock::PersistedSize>,
+    pub effective: SizeChoice,
     pub motion: crate::config::DockMotion,
     pub peek: bool,
     pub apps: Vec<AppInfo>,
+    pub errors: Vec<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -226,7 +246,9 @@ panel:
     }
 
     use crate::apps::AppManifest;
-    use crate::config::{DockEdge, DockSize};
+    use crate::config::{DockEdge, DockMode, DockSize};
+    use crate::dock::{PersistedSize, SizeChoice};
+    use assert_fs::prelude::*;
 
     fn test_state_with_dock() -> AppState {
         let config = test_config();
@@ -236,19 +258,35 @@ panel:
     #[test]
     fn dock_snapshot_lists_loaded_apps() {
         let state = test_state_with_dock();
-        state.set_apps_for_test(vec![AppManifest {
-            name: "Curtis Chat".into(),
-            icon: None,
-            url: Some("https://app.curtisai.tech".into()),
-            entry: None,
-            size: crate::apps::AppSizeHint::Full,
-            hotkey: None,
-        }]);
+        state.set_apps_for_test(vec![
+            AppManifest {
+                name: "Curtis Chat".into(),
+                icon: None,
+                url: Some("https://app.curtisai.tech".into()),
+                entry: None,
+                size: crate::apps::AppSizeHint::Full,
+                hotkey: None,
+            },
+            AppManifest {
+                name: "Local Tool".into(),
+                icon: None,
+                url: None,
+                entry: Some("ui/index.html".into()),
+                size: crate::apps::AppSizeHint::default(),
+                hotkey: None,
+            },
+        ]);
         let snap = state.dock_snapshot();
         assert_eq!(snap.edge, DockEdge::Right);
+        assert_eq!(snap.mode, DockMode::Dock);
+        assert_eq!(snap.hotkey, "alt+c");
         assert!(matches!(snap.motion, crate::config::DockMotion::Drawer));
-        assert_eq!(snap.apps.len(), 1);
+        assert_eq!(snap.apps.len(), 2);
         assert_eq!(snap.apps[0].name, "Curtis Chat");
+        assert_eq!(snap.apps[1].name, "Local Tool");
+        let entry = snap.apps[1].entry.as_deref().unwrap();
+        assert!(entry.ends_with("ui/index.html"), "entry was {entry}");
+        assert!(snap.errors.is_empty());
     }
 
     #[test]
@@ -258,6 +296,73 @@ panel:
         state.set_dock_size(DockSize::Ledger);
         let snap = state.dock_snapshot();
         assert_eq!(snap.size, DockSize::Ledger);
-        assert!(snap.custom.is_none());
+        assert_eq!(snap.effective, SizeChoice::Preset(DockSize::Ledger));
+    }
+
+    #[test]
+    fn dock_snapshot_reports_effective_custom_size() {
+        let state = test_state_with_dock();
+        state.dock.write().set_custom(500, 800);
+        let snap = state.dock_snapshot();
+        assert_eq!(
+            snap.effective,
+            SizeChoice::Custom(PersistedSize { width: 500, height: 800 })
+        );
+    }
+
+    #[test]
+    fn dock_snapshot_serializes_self_describing_shape() {
+        let state = test_state_with_dock();
+        state.dock.write().set_custom(500, 800);
+        let json = serde_json::to_value(state.dock_snapshot()).unwrap();
+        assert_eq!(
+            json["effective"],
+            serde_json::json!({ "custom": { "width": 500, "height": 800 } })
+        );
+
+        let state = test_state_with_dock();
+        let json = serde_json::to_value(state.dock_snapshot()).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "mode": "dock",
+                "edge": "right",
+                "hotkey": "alt+c",
+                "shown": false,
+                "size": "folio",
+                "effective": { "preset": "folio" },
+                "motion": "drawer",
+                "peek": true,
+                "apps": [],
+                "errors": []
+            })
+        );
+    }
+
+    #[test]
+    fn reload_apps_loads_valid_and_surfaces_errors() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        temp.child("config.yaml").write_str(r#"
+panel:
+  id: test
+  name: Test
+  grid: { columns: 1, rows: 1 }
+  buttons: []
+apps_dir: apps
+"#).unwrap();
+        temp.child("apps/good/app.curt.yaml")
+            .write_str("name: Good App\nurl: https://x.test\n")
+            .unwrap();
+        temp.child("apps/broken").create_dir_all().unwrap();
+
+        let config = crate::config::load_from_path(&temp.path().join("config.yaml")).unwrap();
+        let state = AppState::new(config);
+        state.reload_apps(&temp.path().join("config.yaml"));
+
+        let snap = state.dock_snapshot();
+        assert_eq!(snap.apps.len(), 1);
+        assert_eq!(snap.apps[0].name, "Good App");
+        assert_eq!(snap.errors.len(), 1, "errors were {:?}", snap.errors);
+        assert!(snap.errors[0].contains("broken"), "errors were {:?}", snap.errors);
     }
 }

@@ -11,7 +11,11 @@ pub struct PersistedSize {
     pub height: u32,
 }
 
+/// Self-describing over IPC: `{"preset":"folio"}` or
+/// `{"custom":{"width":500,"height":800}}`. Not persisted — `DockState`
+/// stores presets and overrides separately.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum SizeChoice {
     Preset(DockSize),
     Custom(PersistedSize),
