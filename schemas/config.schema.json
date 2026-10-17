@@ -67,6 +67,19 @@
         "always_on_top": { "type": "boolean", "default": false },
         "launch_on_login": { "type": "boolean", "default": false }
       }
-    }
+    },
+    "dock": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "mode": { "type": "string", "enum": ["dock", "float", "pin"], "default": "dock" },
+        "edge": { "type": "string", "enum": ["left", "right", "top", "bottom"], "default": "right" },
+        "hotkey": { "type": "string", "default": "alt+c" },
+        "peek": { "type": "boolean", "default": true },
+        "size": { "type": "string", "enum": ["ledger", "folio", "full"], "default": "folio" },
+        "motion": { "type": "string", "enum": ["drawer", "slide", "stamp"], "default": "drawer" }
+      }
+    },
+    "apps_dir": { "type": "string" }
   }
 }
