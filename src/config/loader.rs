@@ -20,6 +20,16 @@ pub fn default_config_path() -> PathBuf {
     PathBuf::from(home).join(".openpanel").join("config.yaml")
 }
 
+/// Resolve the configured apps_dir against the config file's location.
+/// Falls back to `<config dir>/apps` when unset.
+pub fn apps_dir_for(config: &Config, config_path: &Path) -> PathBuf {
+    let config_dir = config_path.parent().unwrap_or_else(|| Path::new("."));
+    match &config.apps_dir {
+        Some(dir) => crate::apps::resolve_apps_dir(config_dir, dir),
+        None => config_dir.join("apps"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

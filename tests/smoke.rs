@@ -1,4 +1,5 @@
 use openpanel::config::{load_from_path, validate, lint_raw_yaml};
+use openpanel::config::apps_dir_for;
 use openpanel::commands::AppState;
 use openpanel::state::ButtonState;
 use std::path::PathBuf;
@@ -34,4 +35,20 @@ fn example_config_first_button_runs() {
         .find(|s| s.id == first_id)
         .expect("triggered button should have a state entry");
     assert_eq!(triggered.state, ButtonState::Active);
+}
+
+#[test]
+fn example_apps_dir_loads_cleanly() {
+    let config = load_from_path(&examples_config()).unwrap();
+    let apps_dir = openpanel::config::apps_dir_for(&config, &examples_config());
+    assert!(apps_dir.exists(), "example apps dir missing at {}", apps_dir.display());
+
+    let (loaded, errors) = openpanel::apps::load_apps(&apps_dir);
+    assert!(errors.is_empty(), "example app errors: {:?}", errors);
+    assert_eq!(loaded.len(), 1);
+    assert_eq!(loaded[0].manifest.name, "Curtis Chat");
+    assert_eq!(
+        loaded[0].manifest.url.as_deref(),
+        Some("https://app.curtisai.tech")
+    );
 }
