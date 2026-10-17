@@ -10,9 +10,9 @@
   <div id="dock" class="edge-right motion-drawer">
     <header id="dock-head">
       <span id="dock-mark">◉ curtis panel</span>
-      <nav id="dock-tabs">
-        <button class="tab active" data-view="deck">deck</button>
-        <button class="tab" data-view="apps">apps</button>
+      <nav id="dock-tabs" role="tablist">
+        <button class="tab active" role="tab" aria-selected="true" data-view="deck">deck</button>
+        <button class="tab" role="tab" aria-selected="false" data-view="apps">apps</button>
       </nav>
       <button id="theme-toggle" title="toggle ink">ink</button>
     </header>
@@ -24,7 +24,7 @@
         <aside id="app-list"></aside>
         <div id="app-region">
           <iframe id="app-frame" hidden></iframe>
-          <div id="app-unavailable" hidden>
+          <div id="app-unavailable" role="status" hidden>
             <p class="stamp">RECORD UNAVAILABLE</p>
             <p id="app-unavailable-name"></p>
             <button id="app-retry">retry</button>
