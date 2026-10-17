@@ -64,8 +64,20 @@ pub fn run_app() -> anyhow::Result<()> {
         ])
         .setup(move |app| {
             crate::shell::position_dock(app.handle())?;
-            if peek_enabled {
-                crate::shell::position_peek(app.handle())?;
+            let mode = app
+                .state::<crate::commands::AppState>()
+                .config
+                .read()
+                .dock
+                .mode;
+            if mode == DockMode::Dock {
+                if peek_enabled {
+                    crate::shell::position_peek(app.handle())?;
+                }
+            } else {
+                // Peek is a dock-edge affordance; hide a tab left over from a
+                // previous run's persisted state in float/pin modes.
+                let _ = app.get_webview_window("peek").map(|w| w.hide());
             }
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let open = MenuItem::with_id(app, "open", "Open panel", true, None::<&str>)?;
