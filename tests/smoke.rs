@@ -1,5 +1,4 @@
 use openpanel::config::{load_from_path, validate, lint_raw_yaml};
-use openpanel::config::apps_dir_for;
 use openpanel::commands::AppState;
 use openpanel::state::ButtonState;
 use std::path::PathBuf;
@@ -51,4 +50,6 @@ fn example_apps_dir_loads_cleanly() {
         loaded[0].manifest.url.as_deref(),
         Some("https://app.curtisai.tech")
     );
+    assert!(loaded[0].manifest.entry.is_none());
+    assert_eq!(loaded[0].manifest.size, openpanel::apps::AppSizeHint::Full);
 }

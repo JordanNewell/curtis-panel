@@ -22,12 +22,13 @@ pub fn default_config_path() -> PathBuf {
 
 /// Resolve the configured apps_dir against the config file's location.
 /// Falls back to `<config dir>/apps` when unset.
+/// A parentless `config_path` resolves against the current directory.
 pub fn apps_dir_for(config: &Config, config_path: &Path) -> PathBuf {
     let config_dir = config_path.parent().unwrap_or_else(|| Path::new("."));
-    match &config.apps_dir {
-        Some(dir) => crate::apps::resolve_apps_dir(config_dir, dir),
-        None => config_dir.join("apps"),
-    }
+    crate::apps::resolve_apps_dir(
+        config_dir,
+        config.apps_dir.as_deref().unwrap_or(Path::new("apps")),
+    )
 }
 
 #[cfg(test)]
@@ -67,5 +68,23 @@ panel:
     fn returns_error_for_malformed_yaml() {
         let result = load_from_str("panel: [unclosed");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn apps_dir_for_falls_back_to_config_dir_apps() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        let file = temp.child("config.yaml");
+        file.write_str(r#"
+panel:
+  id: test
+  name: Test
+  grid:
+    columns: 1
+    rows: 1
+  buttons: []
+"#).unwrap();
+        let config = load_from_path(file.path()).unwrap();
+        let apps_dir = apps_dir_for(&config, file.path());
+        assert_eq!(apps_dir, temp.path().join("apps"));
     }
 }
