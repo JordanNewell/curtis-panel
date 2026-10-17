@@ -40,7 +40,7 @@ impl Default for DockState {
         Self {
             edge: DockEdge::Right,
             shown: false,
-            size: DockSize::Folio,
+            size: DockSize::Ledger,
             custom_by_edge: HashMap::new(),
             float_pos: None,
         }

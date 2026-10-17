@@ -50,7 +50,7 @@ dock:
   edge: right
   hotkey: alt+c
   peek: true
-  size: folio
+  size: ledger
   motion: drawer
 
 apps_dir: apps # relative to this config file
