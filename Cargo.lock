@@ -2355,6 +2355,7 @@ dependencies = [
  "parking_lot",
  "pretty_assertions",
  "serde",
+ "serde_json",
  "serde_yaml",
  "tauri",
  "tauri-build",
