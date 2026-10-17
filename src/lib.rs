@@ -36,7 +36,9 @@ pub fn run_app() -> anyhow::Result<()> {
     app_state.reload_apps(&config_path);
 
     // Restore persisted dock state (edge overrides + drag sizes).
-    if let Ok(Some(saved)) = crate::dock::DockState::load(&config::default_dock_state_path()) {
+    if let Ok(Some(mut saved)) = crate::dock::DockState::load(&config::default_dock_state_path()) {
+        // Always start hidden — the hotkey or peek summons the panel.
+        saved.shown = false;
         *app_state.dock.write() = saved;
     }
 
