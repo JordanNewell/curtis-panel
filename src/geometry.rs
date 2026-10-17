@@ -116,6 +116,28 @@ mod tests {
         assert_eq!(r.width, 960);
         let r = dock_rect(MONITOR, DockEdge::Top, DockSize::Full, None);
         assert_eq!(r.height, 540);
+        // Odd cross dims truncate via integer division: 1921 / 2 == 960.
+        let odd = Rect { x: 0, y: 0, width: 1921, height: 1080 };
+        let r = dock_rect(odd, DockEdge::Right, DockSize::Full, None);
+        assert_eq!(r.width, 960);
+    }
+
+    #[test]
+    fn nonzero_origin_propagates_to_all_edges() {
+        let m = Rect { x: -1920, y: 400, width: 1920, height: 1080 };
+        assert_eq!(dock_rect(m, DockEdge::Left, DockSize::Ledger, None).x, -1920);
+        assert_eq!(dock_rect(m, DockEdge::Right, DockSize::Ledger, None).x, -360);
+        assert_eq!(dock_rect(m, DockEdge::Top, DockSize::Ledger, None).y, 400);
+        assert_eq!(dock_rect(m, DockEdge::Bottom, DockSize::Ledger, None).y, 400 + 1080 - 360);
+    }
+
+    #[test]
+    fn bottom_custom_sizes_height_and_keeps_full_width() {
+        let custom = PersistedSize { width: 500, height: 700 };
+        let r = dock_rect(MONITOR, DockEdge::Bottom, DockSize::Folio, Some(custom));
+        assert_eq!(r.height, 700, "custom height wins on the cross axis");
+        assert_eq!(r.width, 1920);
+        assert_eq!(r.y, 1080 - 700);
     }
 
     #[test]
