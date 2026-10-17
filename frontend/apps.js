@@ -12,6 +12,7 @@
   let loadTimer = null;
   let retryDelay = 5000;
   let loaded = true;
+  let retryTimer = null;
 
   function showUnavailable(name) {
     frame.hidden = true;
@@ -22,8 +23,8 @@
   }
 
   function scheduleRetry() {
-    clearTimeout(loadTimer);
-    loadTimer = setTimeout(() => { if (activeApp) openApp(activeApp); }, retryDelay);
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => { if (activeApp) openApp(activeApp); }, retryDelay);
     retryDelay = Math.min(retryDelay * 2, 60000);
   }
 
@@ -40,6 +41,7 @@
     activeApp = app;
     unavailable.hidden = true;
     clearTimeout(loadTimer);
+    clearTimeout(retryTimer);
     frame.hidden = false;
     loaded = false;
     // Load timeout: if the iframe never fires `load` in 6s, treat as down.
