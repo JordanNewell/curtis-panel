@@ -139,7 +139,7 @@ pub fn hide_dock(app: &AppHandle) -> tauri::Result<()> {
     set_dock_shown(app, false)
 }
 
-fn persist_state(app: &AppHandle) {
+pub(crate) fn persist_state(app: &AppHandle) {
     let state: tauri::State<crate::commands::AppState> = app.state();
     let dock = state.dock.read().clone();
     if let Err(e) = dock.save(&crate::config::default_dock_state_path()) {

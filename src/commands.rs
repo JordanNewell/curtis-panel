@@ -192,6 +192,7 @@ pub fn get_dock(state: tauri::State<'_, AppState>) -> DockSnapshot {
 #[tauri::command]
 pub fn set_dock_size(
     size: String,
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let size = match size.as_str() {
@@ -201,6 +202,10 @@ pub fn set_dock_size(
         other => return Err(format!("unknown size '{other}'")),
     };
     state.set_dock_size(size);
+    // Apply immediately — reposition (and re-show, if visible) instead of
+    // waiting for the next hide/show cycle, then persist like the shell does.
+    crate::shell::persist_state(&app);
+    crate::shell::position_dock(&app).map_err(|e| e.to_string())?;
     Ok(())
 }
 
