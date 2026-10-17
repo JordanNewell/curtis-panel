@@ -74,6 +74,21 @@ apps_dir: /tmp/my-apps
         assert_eq!(config.dock.motion, DockMotion::Stamp);
         assert_eq!(config.apps_dir, Some(std::path::PathBuf::from("/tmp/my-apps")));
     }
+
+    #[test]
+    fn float_mode_parses() {
+        let yaml = r#"
+panel:
+  id: test
+  name: Test
+  grid: { columns: 4, rows: 5 }
+  buttons: []
+dock:
+  mode: float
+"#;
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.dock.mode, DockMode::Float);
+    }
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -96,6 +111,7 @@ Add after the `Grid` struct:
 #[serde(rename_all = "lowercase")]
 pub enum DockMode {
     Dock,
+    Float,
     Pin,
 }
 
@@ -178,7 +194,7 @@ Inside the top-level `"properties"` object, alongside the existing `"panel"`, `"
       "type": "object",
       "default": {},
       "properties": {
-        "mode": { "type": "string", "enum": ["dock", "pin"], "default": "dock" },
+        "mode": { "type": "string", "enum": ["dock", "float", "pin"], "default": "dock" },
         "edge": { "type": "string", "enum": ["left", "right", "top", "bottom"], "default": "right" },
         "hotkey": { "type": "string", "default": "alt+c" },
         "peek": { "type": "boolean", "default": true },
@@ -236,18 +252,21 @@ Append to the existing `mod tests` in `src/config/validator.rs`:
     }
 
     #[test]
-    fn validate_includes_hotkey_warnings_in_dock_mode() {
-        let config: Config = serde_yaml::from_str(r#"
+    fn validate_includes_hotkey_warnings_in_dock_and_float_modes() {
+        for mode in ["dock", "float"] {
+            let config: Config = serde_yaml::from_str(&format!(r#"
 panel:
   id: test
   name: Test
-  grid: { columns: 4, rows: 5 }
+  grid: {{ columns: 4, rows: 5 }}
   buttons: []
 dock:
+  mode: {mode}
   hotkey: alt+tab
-"#).unwrap();
-        let warnings = validate(&config);
-        assert!(warnings.iter().any(|w| w.message.contains("reserved")));
+"#)).unwrap();
+            let warnings = validate(&config);
+            assert!(warnings.iter().any(|w| w.message.contains("reserved")), "mode={mode}");
+        }
     }
 
     #[test]
@@ -351,7 +370,7 @@ pub fn validate_hotkey(hotkey: &str) -> Vec<ValidationWarning> {
 Then extend `validate` — add at the end of the function, before `warnings` is returned:
 
 ```rust
-    if config.dock.mode == crate::config::DockMode::Dock {
+    if config.dock.mode != crate::config::DockMode::Pin {
         warnings.extend(
             validate_hotkey(&config.dock.hotkey)
                 .into_iter()
@@ -763,6 +782,19 @@ mod tests {
         let loaded = DockState::load(&temp.path().join("nope.json")).unwrap();
         assert!(loaded.is_none());
     }
+
+    #[test]
+    fn float_position_persists() {
+        let mut s = new_state();
+        assert_eq!(s.float_pos, None);
+        s.set_float_pos(120, 240);
+        assert_eq!(s.float_pos, Some((120, 240)));
+        let temp = assert_fs::TempDir::new().unwrap();
+        let path = temp.path().join("dock-state.json");
+        s.save(&path).unwrap();
+        let loaded = DockState::load(&path).unwrap().unwrap();
+        assert_eq!(loaded.float_pos, Some((120, 240)));
+    }
 }
 ```
 
@@ -801,6 +833,9 @@ pub struct DockState {
     pub shown: bool,
     pub size: DockSize,
     pub custom_by_edge: HashMap<DockEdge, PersistedSize>,
+    /// Last window position in `mode: float` (physical px), so a popped-out
+    /// panel reopens where the consumer left it.
+    pub float_pos: Option<(i32, i32)>,
 }
 
 impl DockState {
@@ -810,7 +845,12 @@ impl DockState {
             shown: false,
             size,
             custom_by_edge: HashMap::new(),
+            float_pos: None,
         }
+    }
+
+    pub fn set_float_pos(&mut self, x: i32, y: i32) {
+        self.float_pos = Some((x, y));
     }
 
     pub fn toggle(&mut self) {
@@ -1509,17 +1549,32 @@ pub fn run_app() -> anyhow::Result<()> {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Click-away dismissal: blur on the main window hides the dock.
-            if window.label() == "main" {
-                if let tauri::WindowEvent::Focused(false) = event {
-                    if let Err(e) = crate::shell::hide_dock(&window.app_handle()) {
+            if window.label() != "main" {
+                return;
+            }
+            let app = window.app_handle();
+            let mode = app
+                .state::<crate::commands::AppState>()
+                .config
+                .read()
+                .dock
+                .mode;
+            match event {
+                // Click-away dismissal only in dock mode — a popped-out panel
+                // is a normal window and survives focus loss.
+                tauri::WindowEvent::Focused(false) if mode == DockMode::Dock => {
+                    if let Err(e) = crate::shell::hide_dock(&app) {
                         tracing::error!("dock hide failed: {e}");
                     }
                 }
-                if let tauri::WindowEvent::Resized(_) = event {
+                tauri::WindowEvent::Resized(_) if mode == DockMode::Dock => {
                     // Drag-resize: persist the new cross dimension per edge.
                     crate::shell::note_resize(window);
                 }
+                tauri::WindowEvent::Moved(_) if mode == DockMode::Float => {
+                    crate::shell::note_move(window);
+                }
+                _ => {}
             }
         })
         .run(tauri::generate_context!())
@@ -1591,6 +1646,21 @@ pub fn position_dock(app: &App) -> tauri::Result<()> {
     if dock_cfg.mode == DockMode::Pin {
         // openpanel v1 behavior: normal always-on-top window, centered.
         window.set_always_on_top(true)?;
+        return Ok(());
+    }
+
+    if dock_cfg.mode == DockMode::Float {
+        // Popped-out panel: a normal frameless window. No edge pinning, no
+        // peek; reopens at the consumer's last dragged position.
+        window.set_always_on_top(false)?;
+        match dock.float_pos {
+            Some((x, y)) => window.set_position(tauri::PhysicalPosition::new(x, y))?,
+            None => window.center()?,
+        }
+        if dock.shown {
+            window.show()?;
+            let _ = window.set_focus();
+        }
         return Ok(());
     }
 
@@ -1684,6 +1754,21 @@ pub fn note_resize(window: &WebviewWindow) {
     }
 }
 
+/// Float mode: remember where the consumer dragged the panel.
+pub fn note_move(window: &WebviewWindow) {
+    let app = window.app_handle();
+    let state: tauri::State<crate::commands::AppState> = app.state();
+    let cfg = state.config.read();
+    if cfg.dock.mode != DockMode::Float {
+        return;
+    }
+    drop(cfg);
+    if let Ok(pos) = window.outer_position() {
+        state.dock.write().set_float_pos(pos.x, pos.y);
+        persist_state(app);
+    }
+}
+
 /// Place the peek tab at the docked edge, centered along it.
 pub fn position_peek(app: &App) -> tauri::Result<()> {
     let Some(peek) = app.get_webview_window("peek") else {
@@ -1743,6 +1828,9 @@ Manual checklist (AEON, all must pass):
 5. Click peek tab → panel opens.
 6. Tray icon present; "Open panel" + "Quit" work.
 7. `cargo run -- check` still passes against the example config.
+8. Set `dock.mode: float` in the config, restart: `alt+c` shows a frameless
+   window centered; drag it somewhere; quit + relaunch + `alt+c` — it reopens
+   at the dragged position; clicking away does NOT hide it.
 
 Do not proceed to Task 9 until 1–7 pass.
 
@@ -2275,9 +2363,9 @@ cp -r examples/apps ~/.curtis/panel/apps
 ```
 
 The panel needs a valid config at `~/.curtis/panel/config.yaml` and refuses to
-start without one. `dock:` sets the edge (`left/right/top/bottom`), hotkey
-(default `alt+c`), size preset (`ledger/folio/full`), and motion theme
-(`drawer/slide/stamp`). Apps are folders with an `app.curt.yaml` manifest —
+start without one. `dock:` sets the mode (`dock | float | pin`), edge
+(`left/right/top/bottom`), hotkey (default `alt+c`), size preset
+(`ledger/folio/full`), and motion theme (`drawer/slide/stamp`). Apps are folders with an `app.curt.yaml` manifest —
 see [`examples/apps/curtis-chat`](examples/apps/curtis-chat/app.curt.yaml) and
 the schema at [`schemas/app.schema.json`](schemas/app.schema.json).
 

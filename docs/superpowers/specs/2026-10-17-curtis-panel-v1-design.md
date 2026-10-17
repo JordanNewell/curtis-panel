@@ -138,8 +138,14 @@ the peek-tab is a file tab; the hidden state is "filed."
   - `ledger` — narrow deck-only (~360px wide when side-docked)
   - `folio` — deck + app view (~900px)
   - `full` — edge-to-edge along the docked axis
-- **Mode:** `mode: dock` (default) or `pin` — pin restores openpanel v1
-  always-on-top behavior in a normal framed position.
+- **Mode:** `mode: dock` (default), `float`, or `pin`:
+  - `dock` — the default edge-docked behavior described above.
+  - `float` — the panel pops out of the screen: a free-floating frameless
+    window (centered on first show, draggable, resizable, no edge pinning, no
+    peek tab). Hotkey still toggles it; click-away does not dismiss it.
+    Last position persists across restarts in `dock-state.json`.
+  - `pin` — restores openpanel v1 always-on-top behavior in a normal framed
+    position.
 
 ---
 
@@ -169,7 +175,7 @@ settings get their own `dock:` section (all optional, defaults shown):
 
 ```yaml
 dock:
-  mode: dock            # dock | pin
+  mode: dock            # dock | float | pin
   edge: right           # left | right | top | bottom
   hotkey: alt+c
   peek: true
