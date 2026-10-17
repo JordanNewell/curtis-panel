@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "curtis-panel app manifest",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": { "type": "string" },
+    "icon": { "type": "string" },
+    "url": { "type": "string", "format": "uri" },
+    "entry": { "type": "string" },
+    "size": { "type": "string", "enum": ["ledger", "folio", "full"], "default": "folio" }
+  },
+  "oneOf": [
+    { "required": ["url"] },
+    { "required": ["entry"] }
+  ]
+}

@@ -53,3 +53,26 @@ fn example_apps_dir_loads_cleanly() {
     assert!(loaded[0].manifest.entry.is_none());
     assert_eq!(loaded[0].manifest.size, openpanel::apps::AppSizeHint::Full);
 }
+
+#[test]
+fn example_config_dock_section_is_valid() {
+    let config = load_from_path(&examples_config()).unwrap();
+    assert_eq!(config.dock.edge, openpanel::config::DockEdge::Right);
+    assert_eq!(config.dock.size, openpanel::config::DockSize::Folio);
+    assert_eq!(config.dock.motion, openpanel::config::DockMotion::Drawer);
+    let warnings = validate(&config);
+    assert!(warnings.is_empty(), "dock validation warnings: {:?}", warnings);
+}
+
+#[test]
+fn dock_state_survives_save_load_cycle() {
+    use openpanel::dock::DockState;
+    let temp = assert_fs::TempDir::new().unwrap();
+    let path = temp.path().join("dock-state.json");
+    let config = load_from_path(&examples_config()).unwrap();
+    let mut state = DockState::new(config.dock.edge, config.dock.size);
+    state.toggle();
+    state.save(&path).unwrap();
+    let loaded = DockState::load(&path).unwrap().unwrap();
+    assert!(loaded.shown);
+}
