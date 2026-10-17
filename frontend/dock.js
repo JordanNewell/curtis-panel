@@ -18,9 +18,13 @@
   // --- view tabs ---
   document.querySelectorAll('#dock-tabs .tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('#dock-tabs .tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#dock-tabs .tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       document.getElementById(`view-${tab.dataset.view}`).classList.add('active');
     });
   });
