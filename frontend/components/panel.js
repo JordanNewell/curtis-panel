@@ -15,6 +15,16 @@ function renderPanel(panel, states) {
     el.addEventListener('click', () => onButtonClick(button.id));
     container.appendChild(el);
   }
+
+  // deck caption — closes the ledger page so leftover height reads as margin
+  let caption = document.getElementById('deck-caption');
+  if (!caption) {
+    caption = document.createElement('footer');
+    caption.id = 'deck-caption';
+    container.after(caption);
+  }
+  const n = panel.buttons.length;
+  caption.textContent = `${n} ${n === 1 ? 'entry' : 'entries'}`;
 }
 
 window.renderPanel = renderPanel;
