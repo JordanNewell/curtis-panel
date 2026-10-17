@@ -90,6 +90,10 @@ html, body {
   width: 100%;
   flex: 1;
   min-height: 0;
+  /* register rows: fixed ledger-line height, anchored to the top of the
+     sheet — leftover height shows ruled paper, not inflated entries */
+  grid-auto-rows: calc(var(--grid) * 10);
+  align-content: start;
 }
 #deck-caption {
   font-family: var(--font-records);
