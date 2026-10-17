@@ -4,6 +4,7 @@ pub mod cli;
 pub mod commands;
 pub mod config;
 pub mod dock;
+pub mod geometry;
 pub mod state;
 
 use commands::AppState;
