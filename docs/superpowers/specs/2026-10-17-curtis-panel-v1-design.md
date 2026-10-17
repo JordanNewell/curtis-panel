@@ -164,18 +164,22 @@ the peek-tab is a file tab; the hidden state is "filed."
 
 ## 6. Config (extends existing YAML)
 
-New `panel` section (all optional, defaults shown):
+The existing top-level `panel:` key holds the grid/buttons definition, so dock
+settings get their own `dock:` section (all optional, defaults shown):
 
 ```yaml
-panel:
+dock:
   mode: dock            # dock | pin
   edge: right           # left | right | top | bottom
   hotkey: alt+c
   peek: true
   size: folio           # ledger | folio | full
   motion: drawer        # drawer | slide | stamp
-apps_dir: ~/.curtis/panel/apps
+apps_dir: ~/.curtis/panel/apps   # relative paths resolve against the config file
 ```
+
+Default paths rebrand from `~/.openpanel/` to `~/.curtis/panel/` (config,
+`apps/`, `dock-state.json`).
 
 Buttons, actions, signals, themes: unchanged from the 2026-08-02 spec and
 current implementation. `cargo run -- check` validates the full config
