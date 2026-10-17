@@ -36,9 +36,9 @@
   }
 
   function openApp(app) {
+    if (app !== activeApp) { retryDelay = 5000; }
     activeApp = app;
     unavailable.hidden = true;
-    retryDelay = 5000;
     clearTimeout(loadTimer);
     frame.hidden = false;
     loaded = false;
