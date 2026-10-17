@@ -3,7 +3,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(name = "openpanel", version, about = "Signal-first desktop control panel")]
+#[command(name = "curtis-panel", version, about = "Curtis Labs desktop panel")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<SubCmd>,
@@ -66,7 +66,7 @@ fn run_reload() -> Result<()> {
         }
         println!("Reload signal sent to PID {}", pid);
     } else {
-        println!("openpanel does not appear to be running (no PID file at {})", pid_path.display());
+        println!("curtis-panel does not appear to be running (no PID file at {})", pid_path.display());
     }
     Ok(())
 }
@@ -76,7 +76,7 @@ fn default_config_path() -> PathBuf {
 }
 
 fn pid_file_path() -> PathBuf {
-    std::env::temp_dir().join("openpanel.pid")
+    std::env::temp_dir().join("curtis-panel.pid")
 }
 
 #[cfg(test)]
