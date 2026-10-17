@@ -1,6 +1,6 @@
 use std::path::Path;
 use anyhow::{Context, Result};
-use crate::config::Config;
+use crate::config::{Config, DockMode};
 
 #[derive(Debug, PartialEq)]
 pub struct ValidationWarning {
@@ -54,6 +54,7 @@ pub fn validate_hotkey(hotkey: &str) -> Vec<ValidationWarning> {
     }
 
     let mut seen: Vec<&str> = Vec::new();
+    let mut order_warned = false;
     let mut last_idx: Option<usize> = None;
     for m in modifiers {
         match HOTKEY_MODIFIERS.iter().position(|c| c == m) {
@@ -73,13 +74,14 @@ pub fn validate_hotkey(hotkey: &str) -> Vec<ValidationWarning> {
                         message: format!("duplicate hotkey modifier '{m}'"),
                     });
                 }
-                if last_idx.is_some_and(|li| idx < li) {
+                if !order_warned && last_idx.is_some_and(|li| idx < li) {
                     warnings.push(ValidationWarning {
                         line: 0,
                         message: format!(
                             "hotkey modifiers must be in canonical order (ctrl, alt, shift, super, cmd) — got '{hotkey}'"
                         ),
                     });
+                    order_warned = true;
                 }
                 last_idx = Some(idx);
             }
@@ -114,15 +116,8 @@ pub fn validate(config: &Config) -> Vec<ValidationWarning> {
         }
     }
 
-    if config.dock.mode != crate::config::DockMode::Pin {
-        warnings.extend(
-            validate_hotkey(&config.dock.hotkey)
-                .into_iter()
-                .map(|mut w| {
-                    w.message = format!("hotkey: {}", w.message);
-                    w
-                }),
-        );
+    if config.dock.mode != DockMode::Pin {
+        warnings.extend(validate_hotkey(&config.dock.hotkey));
     }
 
     warnings
@@ -244,7 +239,7 @@ panel:
     fn rejects_malformed_hotkeys() {
         assert!(!validate_hotkey("").is_empty());
         assert!(!validate_hotkey("alt+").is_empty());
-        assert!(!validate_hotkey("alt+ctrl+c").is_empty()); // key must be last
+        assert!(!validate_hotkey("alt+ctrl+c").is_empty()); // ctrl after alt violates canonical order
         assert!(!validate_hotkey("ctrl+ctrl+k").is_empty()); // duplicate modifier
         assert!(!validate_hotkey("meta+x").is_empty()); // unknown modifier
         assert!(!validate_hotkey("alt+space+q").is_empty()); // two keys
