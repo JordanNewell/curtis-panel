@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/capability-schema.json",
+  "identifier": "default",
+  "description": "Panel main + peek windows",
+  "windows": ["main", "peek"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-set-focus",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:event:default",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "global-shortcut:allow-is-registered"
+  ]
+}

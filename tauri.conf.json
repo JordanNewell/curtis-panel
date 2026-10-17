@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "openpanel",
+  "productName": "curtis-panel",
   "version": "0.1.0-alpha",
   "identifier": "com.newell.openpanel",
   "build": {
@@ -9,12 +9,27 @@
   "app": {
     "windows": [
       {
-        "title": "openpanel",
-        "width": 480,
-        "height": 640,
-        "alwaysOnTop": true,
+        "label": "main",
+        "title": "curtis-panel",
+        "visible": false,
         "decorations": false,
-        "resizable": false
+        "resizable": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "width": 900,
+        "height": 800
+      },
+      {
+        "label": "peek",
+        "title": "curtis-panel",
+        "visible": false,
+        "decorations": false,
+        "resizable": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": true,
+        "width": 6,
+        "height": 120
       }
     ],
     "security": {

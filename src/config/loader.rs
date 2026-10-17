@@ -17,7 +17,14 @@ pub fn default_config_path() -> PathBuf {
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .unwrap_or_else(|_| ".".to_string());
-    PathBuf::from(home).join(".openpanel").join("config.yaml")
+    PathBuf::from(home).join(".curtis").join("panel").join("config.yaml")
+}
+
+pub fn default_dock_state_path() -> PathBuf {
+    default_config_path()
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("dock-state.json")
 }
 
 /// Resolve the configured apps_dir against the config file's location.
