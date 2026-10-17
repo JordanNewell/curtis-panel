@@ -11,6 +11,7 @@
   let activeApp = null;
   let loadTimer = null;
   let retryDelay = 5000;
+  let loaded = true;
 
   function showUnavailable(name) {
     frame.hidden = true;
@@ -40,14 +41,16 @@
     retryDelay = 5000;
     clearTimeout(loadTimer);
     frame.hidden = false;
+    loaded = false;
     // Load timeout: if the iframe never fires `load` in 6s, treat as down.
     loadTimer = setTimeout(() => {
-      if (!frame.contentWindow || frame.contentWindow.length === undefined) showUnavailable(app.name);
+      if (!loaded) showUnavailable(app.name);
     }, 6000);
     frame.src = appTarget(app);
   }
 
   frame.addEventListener('load', () => {
+    loaded = true;
     clearTimeout(loadTimer);
     unavailable.hidden = true;
   });
