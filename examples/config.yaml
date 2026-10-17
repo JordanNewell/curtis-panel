@@ -44,3 +44,13 @@ panel:
 settings:
   webhook_port: 7331
   always_on_top: true
+
+dock:
+  mode: dock
+  edge: right
+  hotkey: alt+c
+  peek: true
+  size: folio
+  motion: drawer
+
+apps_dir: apps # relative to this config file
